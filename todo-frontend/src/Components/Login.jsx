@@ -11,6 +11,7 @@ const Login=()=>{
         try{
         const response = await axios.post('http://localhost:8080/login',{username,password});
         localStorage.setItem('token',response.data.token);
+        localStorage.setItem('user',JSON.stringify(response.data.user));
         navigate("/dashboard");
         }catch(error){
             alert("Username or Paswword is not correct. Please try again!!!")

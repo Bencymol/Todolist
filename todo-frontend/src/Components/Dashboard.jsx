@@ -1,6 +1,7 @@
 import axios from "axios";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import './dashboard.scss';
 
 const Dashboard = () => {
     const token = localStorage.getItem('token');
@@ -13,24 +14,31 @@ const Dashboard = () => {
                 Authorization: `Bearer ${token}`
             }
         });
-        setTasks(response.data);
+        if(response.data.length!==0){
+         setTasks(response.data);
+        }
+        else{
+            navigate("/add-task")
+        }
     }
 
     const toggleTask = async (taskId) => {
-        const prev = tasks;
+        setTasks((prevTasks) => {
+            const updatedTasks = prevTasks.map((task) =>
+                task.id === taskId
+                    ? {
+                        ...task,
+                        status: task.status === "done" ? "pending" : "done"
+                    }
+                    : task
+            );
+            const updatedTask = updatedTasks.find((t) => t.id === taskId);
+            if (updatedTask) {
+                updateTask(taskId, { status: updatedTask.status });
+            }
 
-        // const updated = tasks.map((task)=>(
-        //     task.id == taskId?{...task,status: t.status === "done" ? "pending" : "done" }          
-        // : task));
-
-        // setTasks(updated);
-        try {
-            // call updateTask with the new status
-            const response = await updateTask(taskId, { status: newStatus });
-            setTasks(response.data);
-        } catch (err) {
-            setTasks(prev);
-        }
+            return updatedTasks;
+        });
     }
 
     const updateTask = async (taskId, task) => {
@@ -41,25 +49,50 @@ const Dashboard = () => {
         })
     }
 
+    const handleDelete=async(taskId)=>{
+        const response = await axios.delete(`http://localhost:8080/admin/delete-task/${taskId}`, {
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
+        })
+
+        const updatedTask = tasks.filter((t) => t.id === taskId);
+        console.log("updated tasks:",updatedTask);
+    }
+
     useEffect(() => {
         fetchTasks();
 
     }, [])
     return (
         <div className="dashboard-container">
-            <h2>Todo List</h2>
-            {tasks.length == 0 && <div><button type="submit"
-                className="btn" onClick={() => { navigate("/add-task") }}>Add new task</button></div>}
+            <div>
+                <button type="submit" className="btn" 
+                onClick={() => { navigate("/add-task") }}>
+                    Add new task
+                </button>
+            </div>
+            <h2 className="container-heading">Todo List</h2>           
             <ul className="task-list">
                 {tasks.map((task) => (
-                    <li key={task.id} className={`task-item${task.status == 'done' ? "done" : ""}`}>
-                        <input
-                            type="checkbox"
-                            checked={task.status === "done"}
-                            onChange={() => toggleTask(task.id)}
-                        />
-                    </li>
-                ))}
+                            <li
+                                key={task.id}
+                                className={`task-item ${task.status === "done" ? "done" : ""}`}
+                            >
+                                <div className="task-input">
+                                    <input
+                                    type="checkbox"
+                                    checked={task.status === "done"}
+                                    onChange={() => toggleTask(task.id)}
+                                    />
+                                    <label className="task-name">{task.taskName}</label>
+                                </div>
+                                <div className="delete-btn">
+                                    <button className="btn" onClick={()=>handleDelete(task.id)}>Delete</button>
+                                </div>
+                                
+                            </li>
+                        ))}
             </ul>
         </div>
     )
